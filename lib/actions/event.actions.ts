@@ -31,19 +31,33 @@ const populateEvent = (query: any) => {
 };
 
 // CREATE
-export async function createEvent({ userId, event, path }: CreateEventParams) {
+export const createEvent = async ({ event, userId, path }: CreateEventParams) => {
   try {
-    await connectToDatabase();
+    await connectToDatabase()
 
-    const organizer = await User.findById(userId);
-    if (!organizer) throw new Error('Organizer not found');
+    // Server-side validation
+    if (!event.title || !event.description || !event.location) {
+      throw new Error('Missing required fields')
+    }
 
-    const newEvent = await Event.create({ ...event, category: event.categoryId, organizer: userId });
-    revalidatePath(path);
+    // Validate dates
+    const startDate = new Date(event.startDateTime)
+    const endDate = new Date(event.endDateTime)
+    
+    if (endDate < startDate) {
+      throw new Error('End date cannot be before start date')
+    }
 
-    return JSON.parse(JSON.stringify(newEvent));
+    // Create the event
+    const newEvent = await Event.create({
+      ...event,
+      organizer: userId,
+      category: event.categoryId,
+    })
+
+    return JSON.parse(JSON.stringify(newEvent))
   } catch (error) {
-    handleError(error);
+    handleError(error)
   }
 }
 
