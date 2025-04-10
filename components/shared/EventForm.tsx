@@ -52,60 +52,48 @@ const EventForm = ({ userId, type, event, eventId }: EventFormProps) => {
   const [success, setSuccess] = useState<string | null>(null);
 
   async function onSubmit(values: z.infer<typeof eventFormSchema>) {
-    setError(null);
-    setSuccess(null);
-    
-    if (type === 'Create') {
-      try {
-        setIsSubmitting(true)
+    try {
+      setIsSubmitting(true)
+      setError(null)
+      setSuccess(null)
+
+      if (!userId) {
+        throw new Error('Please log in to create/update an event')
+      }
+
+      if (type === 'Create') {
         const newEvent = await createEvent({
           event: { ...values },
           userId,
           path: '/profile'
         })
-  
-        if (newEvent) {
-          setSuccess('Event created successfully!')
-          form.reset();
-          setTimeout(() => {
-            router.push(`/events/${newEvent._id}`)
-          }, 1000)
-        }
-      } catch (error) {
-        setError(error instanceof Error ? error.message : 'Failed to create event')
-        console.error('Failed to create event:', error);
-      } finally {
-        setIsSubmitting(false)
-      }
-    }
 
-    if (type === 'Update') {
-      if (!eventId) {
-        router.back()
-        return;
+        if (!newEvent) {
+          throw new Error('Failed to create event')
+        }
+
+        setSuccess('Event created successfully!')
+        router.push(`/events/${newEvent._id}`)
       }
-  
-      try {
-        setIsSubmitting(true)
+
+      if (type === 'Update' && eventId) {
         const updatedEvent = await updateEvent({
           userId,
           event: { ...values, _id: eventId },
           path: `/events/${eventId}`
         })
-  
-        if (updatedEvent) {
-          setSuccess('Event updated successfully!')
-          form.reset();
-          setTimeout(() => {
-            router.push(`/events/${updatedEvent._id}`)
-          }, 1000)
+
+        if (!updatedEvent) {
+          throw new Error('Failed to update event')
         }
-      } catch (error) {
-        setError(error instanceof Error ? error.message : 'Failed to update event')
-        console.error('Failed to update event:', error);
-      } finally {
-        setIsSubmitting(false)
+
+        setSuccess('Event updated successfully!')
+        router.push(`/events/${eventId}`)
       }
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Something went wrong')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -272,6 +260,32 @@ const EventForm = ({ userId, type, event, eventId }: EventFormProps) => {
           <div className="flex flex-col gap-5 md:flex-row">
             <FormField
               control={form.control}
+              name="isFree"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <div className="flex items-center gap-2">
+                      <label htmlFor="isFree" className="whitespace-nowrap text-gray-600">Free Ticket</label>
+                      <Checkbox
+                        onCheckedChange={(checked) => {
+                          field.onChange(checked)
+                          if (checked) {
+                            form.setValue('price', '0')
+                          }
+                        }}
+                        checked={field.value}
+                        id="isFree" 
+                        className="h-5 w-5 border-2 border-primary-500" 
+                      />
+                    </div>
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+        
+            <FormField
+              control={form.control}
               name="price"
               render={({ field }) => (
                 <FormItem className="w-full">
@@ -289,26 +303,12 @@ const EventForm = ({ userId, type, event, eventId }: EventFormProps) => {
                         type="number" 
                         placeholder="Price" 
                         {...field} 
+                        disabled={form.watch('isFree')}
+                        onChange={(e) => {
+                          const value = e.target.value ? Number(e.target.value) : 0
+                          field.onChange(value)
+                        }}
                         className="p-regular-16 border-0 bg-transparent outline-offset-0 focus:border-0 focus-visible:ring-0 focus-visible:ring-offset-0" 
-                      />
-                      <FormField
-                        control={form.control}
-                        name="isFree"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <div className="flex items-center gap-2">
-                                <label htmlFor="isFree" className="whitespace-nowrap text-gray-600">Free Ticket</label>
-                                <Checkbox
-                                  onCheckedChange={field.onChange}
-                                  checked={field.value}
-                                  id="isFree" 
-                                  className="h-5 w-5 border-2 border-primary-500" 
-                                />
-                              </div>
-                            </FormControl>
-                          </FormItem>
-                        )}
                       />
                     </div>
                   </FormControl>
@@ -339,42 +339,6 @@ const EventForm = ({ userId, type, event, eventId }: EventFormProps) => {
   )
 }
 
+
+
 export default EventForm
-
-
-// Add image optimization
-const optimizeImage = async (file: File) => {
-  if (!file) return null
-  
-  // Check file size
-  const maxSize = 5 * 1024 * 1024 // 5MB
-  if (file.size > maxSize) {
-    alert('Image size should be less than 5MB')
-    return null
-  }
-
-  // Check file type
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
-  if (!allowedTypes.includes(file.type)) {
-    alert('Please upload JPEG, PNG or WebP images only')
-    return null
-  }
-
-  return file
-}
-
-// Update the handleImageUpload function with proper typing
-const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
-  try {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    const optimizedFile = await optimizeImage(file)
-    if (!optimizedFile) return
-
-    // Continue with upload...
-  } catch (error) {
-    alert('Error uploading image')
-    console.error(error)
-  }
-}
