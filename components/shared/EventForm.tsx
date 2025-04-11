@@ -254,7 +254,53 @@ const EventForm = ({ userId, type, event, eventId }: EventFormProps) => {
               )}
             />
 
-            {/* Similar updates for endDateTime field */}
+            // Add the endDateTime field after the startDateTime field
+            <FormField
+              control={form.control}
+              name="startDateTime"
+              render={({ field }) => (
+                <FormItem className="w-full">
+                  <FormLabel className="font-semibold">End Date & Time</FormLabel>
+                  <FormControl>
+                    <div className="flex-center h-[54px] w-full overflow-hidden rounded-full bg-grey-50 px-4 py-2 hover:bg-grey-100 transition-all">
+                      <Image
+                        src="/assets/icons/calendar.svg"
+                        alt="calendar"
+                        width={24}
+                        height={24}
+                        className="filter-grey"
+                      />
+                      <div className="flex gap-2 ml-3">
+                        <input
+                          type="date"
+                          className="bg-transparent text-gray-600 focus:outline-none"
+                          value={field.value ? field.value.toISOString().split('T')[0] : ""}
+                          onChange={e => {
+                            const date = new Date(e.target.value);
+                            if (field.value) {
+                              date.setHours(field.value.getHours(), field.value.getMinutes());
+                            }
+                            field.onChange(date);
+                          }}
+                        />
+                        <input
+                          type="time"
+                          className="bg-transparent text-gray-600 focus:outline-none"
+                          value={field.value ? field.value.toLocaleTimeString().slice(0, 5) : ""}
+                          onChange={e => {
+                            const [hour, minute] = e.target.value.split(":").map(Number);
+                            const newDate = new Date(field.value || new Date());
+                            newDate.setHours(hour, minute);
+                            field.onChange(newDate);
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
 
           <div className="flex flex-col gap-5 md:flex-row">
@@ -266,11 +312,12 @@ const EventForm = ({ userId, type, event, eventId }: EventFormProps) => {
                   <FormControl>
                     <div className="flex items-center gap-2">
                       <label htmlFor="isFree" className="whitespace-nowrap text-gray-600">Free Ticket</label>
+                      // Update the isFree checkbox handler
                       <Checkbox
                         onCheckedChange={(checked) => {
                           field.onChange(checked)
                           if (checked) {
-                            form.setValue('price', '0')
+                            form.setValue('price', '0') // Keep it as string
                           }
                         }}
                         checked={field.value}
@@ -305,7 +352,7 @@ const EventForm = ({ userId, type, event, eventId }: EventFormProps) => {
                         {...field} 
                         disabled={form.watch('isFree')}
                         onChange={(e) => {
-                          const value = e.target.value ? Number(e.target.value) : 0
+                          const value = e.target.value || '0' // Keep it as string
                           field.onChange(value)
                         }}
                         className="p-regular-16 border-0 bg-transparent outline-offset-0 focus:border-0 focus-visible:ring-0 focus-visible:ring-offset-0" 
