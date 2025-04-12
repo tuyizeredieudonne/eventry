@@ -49,20 +49,25 @@ const EventForm = ({ userId, type, event, eventId }: EventFormProps) => {
 
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState({
+    message: '',
+    type: 'info' as 'info' | 'error' | 'success'
+  });
 
   async function onSubmit(values: z.infer<typeof eventFormSchema>) {
-    setError(null);
+    setFeedback({ message: '', type: 'info' });
     try {
       setIsSubmitting(true);
+      setFeedback({ message: 'Processing your request...', type: 'info' });
 
       if (!userId) {
-        setError('Please log in to create/update an event');
+        setFeedback({ message: 'Please log in to create/update an event', type: 'error' });
         return;
       }
 
       // Validate required fields
       if (!values.title || !values.description || !values.imageUrl || !values.categoryId) {
-        setError('Please fill in all required fields');
+        setFeedback({ message: 'Please fill in all required fields', type: 'error' });
         return;
       }
 
@@ -85,6 +90,7 @@ const EventForm = ({ userId, type, event, eventId }: EventFormProps) => {
       };
 
       if (type === 'Create') {
+        setFeedback({ message: 'Creating your event...', type: 'info' });
         const newEvent = await createEvent({
           event: eventData,
           userId,
@@ -92,9 +98,12 @@ const EventForm = ({ userId, type, event, eventId }: EventFormProps) => {
         });
 
         if (newEvent) {
-          router.push(`/events/${newEvent._id}`);
+          setFeedback({ message: 'Event created successfully!', type: 'success' });
+          setTimeout(() => {
+            router.push(`/events/${newEvent._id}`);
+          }, 1000);
         } else {
-          setError('Failed to create event');
+          setFeedback({ message: 'Failed to create event', type: 'error' });
         }
       }
 
@@ -122,9 +131,13 @@ const EventForm = ({ userId, type, event, eventId }: EventFormProps) => {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-5">
-        {error && (
-          <div className="bg-red-50 text-red-500 p-4 rounded-lg mb-4">
-            {error}
+        {feedback.message && (
+          <div className={`p-4 rounded-lg mb-4 ${
+            feedback.type === 'error' ? 'bg-red-50 text-red-500' :
+            feedback.type === 'success' ? 'bg-green-50 text-green-500' :
+            'bg-blue-50 text-blue-500'
+          }`}>
+            {feedback.message}
           </div>
         )}
         <div className="flex flex-col gap-5 md:flex-row">
@@ -344,16 +357,20 @@ const EventForm = ({ userId, type, event, eventId }: EventFormProps) => {
           type="submit"
           size="lg"
           disabled={isSubmitting}
-          className={`button col-span-2 w-full md:w-fit ${isSubmitting ? 'opacity-50' : ''}`}
+          className={`button col-span-2 w-full md:w-fit ${
+            isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
         >
-          {isSubmitting ? (
-            <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
+            {isSubmitting && (
               <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-white"></div>
-              {type === 'Create' ? 'Creating event...' : 'Updating event...'}
-            </div>
-          ) : (
-            `${type} Event`
-          )}
+            )}
+            <span>
+              {isSubmitting 
+                ? `${type === 'Create' ? 'Creating' : 'Updating'}...` 
+                : `${type} Event`}
+            </span>
+          </div>
         </Button>
       </form>
     </Form>
