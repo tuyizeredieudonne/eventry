@@ -2,8 +2,7 @@
 
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
-import { useCallback } from 'react'
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'  // Add useEffect to imports
 
 type FileUploaderProps = {
   onFieldChange: (url: string) => void;
@@ -115,7 +114,5 @@ export const FileUploader = ({ imageUrl, onFieldChange }: FileUploaderProps) => 
     </div>
   )
 }
-function useEffect(arg0: () => void, arg1: string[]) {
-  throw new Error('Function not implemented.')
-}
+// Remove the duplicate useEffect implementation at the bottom
 
